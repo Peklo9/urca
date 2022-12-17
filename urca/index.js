@@ -30,7 +30,7 @@ let leto1 = today.getFullYear()
 const getPodatki = (request, response) => {
   client.query('SELECT * FROM users ORDER BY id ASC', (error, results) => {
     if (error) {
-      throw error
+      console.log(error)
     }
     response.status(200).json(results.rows)
   })
@@ -39,7 +39,7 @@ const getPodatki = (request, response) => {
 app.get('/podatki', (req, res) => {
   client.query('SELECT * FROM urca', (error, results) => {
     if (error) {
-      throw error
+      console.log(error)
     }
     res.status(200).json(results.rows)
   })
@@ -51,7 +51,7 @@ app.post('/posljiPodatke', (req, res) => {
   console.log(req.body)
   client.query('INSERT INTO urca (tip, ura, dan, mesec, leto) VALUES ($1, NOW(), $2, $3, $4);', [tip, dan, mesec, leto], (error, results) => {
     if (error) {
-       throw error
+       console.log(error)
     }
    res.status(201).send(`Zapis dodan`)
   })
@@ -67,7 +67,7 @@ app.post('/posljiPodatke1', (req, res) => {
   console.log(req.body)
   client.query('INSERT INTO urca (tip, ura, dan, mesec, leto) VALUES ($1, $2, $3, $4, $5);', [tip, ura, dan, mesec, leto], (error, results) => {
     if (error) {
-       throw error
+       console.log(error)
     }
    res.status(201).send(`Zapis dodan`)
   })
