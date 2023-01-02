@@ -1,5 +1,6 @@
 const express = require ('express')
 var cors = require('cors')
+var parse = require('postgres-interval')
 
 const app = express()
 
@@ -45,35 +46,54 @@ app.get('/podatki', (req, res) => {
   })
 })
 
-app.post('/posljiPodatke', (req, res) => {
-  const { tip, dan, mesec, leto } = req.body
-  console.log(tip)
-  console.log(req.body)
-  client.query('INSERT INTO urca (tip, ura, dan, mesec, leto) VALUES ($1, NOW(), $2, $3, $4);', [tip, dan, mesec, leto], (error, results) => {
+app.get('/stanje?:mesec?:leto', (req, res) => {
+  let mesec = req.query.mesec
+  let leto = req.query.leto
+
+  client.query("select SUM(odhod.ura - prihod.ura - '08:00:00') as stanje from urca prihod join (select tip, ura, dan, mesec, leto from urca where tip = 'odhod' and mesec = $1 and leto = $2) as odhod  on prihod.dan = odhod.dan and prihod.mesec = odhod.mesec and prihod.leto = odhod.leto where prihod.tip = 'prihod'", [mesec, leto],
+  (error, results) => {
     if (error) {
-       throw error
+      throw error
     }
-   res.status(201).send(`Zapis dodan`)
+   //console.log(results.rows)
+    res.status(200).json(results.rows)
   })
 })
 
-app.post('/posljiPodatke1', (req, res) => {
-  let tip = 'prihod'
-  let ura = ura1
-  let dan = dan1
-  let mesec = mesec1
-  let leto = leto1
-  console.log(tip)
-  console.log(req.body)
-  client.query('INSERT INTO urca (tip, ura, dan, mesec, leto) VALUES ($1, $2, $3, $4, $5);', [tip, ura, dan, mesec, leto], (error, results) => {
-    if (error) {
+app.post('/posljiPodatke', async (req, res) => {
+  const { tip, ura, dan, mesec, leto } = req.body
+  let aliPodatki = await preveri(tip, dan, mesec, leto)
+  if(aliPodatki === false) {
+    console.log(tip)
+    console.log(req.body)
+    client.query('INSERT INTO urca (tip, ura, dan, mesec, leto) VALUES ($1, $2, $3, $4, $5);', [tip, ura, dan, mesec, leto], (error, results) => {
+      if (error) {
        throw error
-    }
-   res.status(201).send(`Zapis dodan`)
-  })
+      }
+    res.status(201).send(`Zapis dodan`)
+    })
+  }
+  else {
+    console.log('vneseno')
+    res.status(409).send('Zapis je že vnesen')
+  }
 })
 
+var preveri = (tip, dan, mesec, leto) => {
+  return new Promise((resolve, reject) => {
+     client.query("select * from urca where tip = $1 and dan = $2 and mesec = $3 and leto = $4;", [tip, dan, mesec, leto], (err, result) => {         
+         if (err) {
+            return reject(err);
+         } else {
+            if (result.rowCount > 0) {
+                return resolve(true);
+            } 
+         }
+         return resolve(false);
+     });
+ });
+};
 
-app.listen(process.env.PORT || 3000, function() {
+app.listen(process.env.PORT || 4000, function() {
   console.log('server running on port 3000', '');
 });
