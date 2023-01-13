@@ -60,6 +60,22 @@ app.get('/stanje?:mesec?:leto', (req, res) => {
   })
 })
 
+app.get('/tabela?:mesec?:leto', (req, res) => {
+  let mesec = req.query.mesec
+  let leto = req.query.leto
+
+  console.log(mesec)
+
+  client.query("select concat(prihod.dan, '.', prihod.mesec,'.', prihod.leto) as datum, prihod.id as prihod_id, TO_CHAR(prihod.ura, 'HH24:MI') as ura_prihoda, odhod.id as odhod_id, TO_CHAR(odhod.ura, 'HH24:MI') as ura_odhoda from urca prihod left join (select tip,id, ura, dan, mesec, leto from urca where tip = 'odhod' and mesec = $1 and leto = $2) as odhod  on prihod.dan = odhod.dan and prihod.mesec = odhod.mesec and prihod.leto = odhod.leto where prihod.tip = 'prihod' and prihod.mesec = $1 and prihod.leto = $2 order by datum;", [mesec, leto],
+  (error, results) => {
+    if (error) {
+      throw error
+    }
+   //console.log(results.rows)
+    res.status(200).json(results.rows)
+  })
+})
+
 app.post('/posljiPodatke', async (req, res) => {
   const { tip, ura, dan, mesec, leto } = req.body
   let aliPodatki = await preveri(tip, dan, mesec, leto)
@@ -93,6 +109,16 @@ var preveri = (tip, dan, mesec, leto) => {
      });
  });
 };
+
+app.delete('/brisanje?:id', (req, res) => {
+  let id = req.query.id
+  client.query('delete from urca where id = $1', [id], (error, results) => {
+    if (error) {
+     throw error
+    }
+  res.status(201).send(`Zapis je izbrisan`)
+  })
+})
 
 app.listen(process.env.PORT || 4000, function() {
   console.log('server running on port 3000', '');
