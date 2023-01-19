@@ -9,7 +9,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended:false}))
 
 app.use(cors({
-origin: 'https://peklo9.github.io/urcaStran/'
+origin: 'https://peklo9.github.io'
 }))
 
 
